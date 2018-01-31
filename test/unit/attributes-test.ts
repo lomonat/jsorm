@@ -20,6 +20,11 @@ describe('Model attributes', function() {
     expect(person.firstName).to.eq('Joe');
   });
 
+  it('camelizes kebab-case strings', function() {
+    let person = new Person({ "first-name": 'Joe' });
+    expect(person.firstName).to.eq('Joe');
+  });
+
   it('does not camlize underscored strings if camelization is disabled', function() {
     let person = new PersonWithoutCamelizedKeys({ first_name: 'Joe' });
     expect(person.firstName).to.eq(undefined);

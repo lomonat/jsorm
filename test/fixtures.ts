@@ -24,6 +24,10 @@ class PersonWithoutCamelizedKeys extends Person {
   first_name: string = attr();
 }
 
+class PersonWithKebabcaseKeys extends Person {
+  static letterCase = 'kebabcase';
+}
+
 // Ensure setup() can be run multiple times with no problems
 // putting this here, otherwise relations wont be available.
 Config.setup();
@@ -116,6 +120,7 @@ export {
   Person,
   PersonWithExtraAttr,
   PersonWithoutCamelizedKeys,
+  PersonWithKebabcaseKeys,
   Book,
   Genre,
   Bio,

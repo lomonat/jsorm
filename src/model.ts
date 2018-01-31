@@ -29,6 +29,7 @@ export default class Model {
   static jwt: string = null;
   static parentClass: typeof Model;
   static camelizeKeys: boolean = true;
+  static letterCase: string = 'snakecase';
 
   id: string;
   temp_id: string;

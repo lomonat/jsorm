@@ -1,10 +1,13 @@
 import Model from '../model';
 import IncludeDirective from './include-directive';
 import * as _snakeCase from './snakecase';
+import * as _kebabCase from './kebabcase';
 import tempId from './temp-id';
 import { decamelize } from './string';
 let snakeCase: any = (<any>_snakeCase).default || _snakeCase;
+let kebabCase: any = (<any>_kebabCase).default || _kebabCase;
 snakeCase = snakeCase['default'] || snakeCase;
+kebabCase = kebabCase['default'] || kebabCase;
 
 export default class WritePayload {
   model: Model;
@@ -21,10 +24,9 @@ export default class WritePayload {
     let attrs = {};
 
     this._eachAttribute((key, value) => {
-      let snakeKey    = snakeCase(key);
 
       if (!this.model.isPersisted() || this.model.changes()[key]) {
-        attrs[snakeKey] = value;
+        attrs[this._letterCaseKey(key)] = value;
       }
     });
 
@@ -203,5 +205,12 @@ export default class WritePayload {
         callback(key, value);
       }
     });
+  }
+
+  private _letterCaseKey(key) : string {
+    if(this.model.klass.letterCase == "kebabcase") {
+      return kebabCase(key);
+    }
+    return snakeCase(key);
   }
 }
