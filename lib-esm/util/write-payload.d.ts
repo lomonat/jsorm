@@ -13,6 +13,7 @@ export declare class WritePayload<T extends JSORMBase> {
         [P in ({
             [P in keyof T]: P;
         } & {
+            reset: never;
             destroy: never;
             fromJsonapi: never;
             id: never;

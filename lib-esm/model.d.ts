@@ -1,5 +1,5 @@
 import { CollectionProxy, RecordProxy, NullProxy } from "./proxies";
-import { LocalStorage, StorageBackend } from "./local-storage";
+import { CredentialStorage, StorageBackend } from "./credential-storage";
 import { Attribute } from "./attribute";
 import { Scope, WhereClause, SortScope, FieldScope, StatsScope, IncludeScope } from "./scope";
 import { JsonapiTypeRegistry } from "./jsonapi-type-registry";
@@ -8,14 +8,18 @@ import { MiddlewareStack, BeforeFilter, AfterFilter } from "./middleware-stack";
 import { Omit } from "./util/omit";
 import { JsonapiResource, JsonapiResponseDoc, JsonapiResourceIdentifier } from "./jsonapi-spec";
 import { IncludeScopeHash } from "./util/include-directive";
+export interface KeyCase {
+    from: "dash" | "camel" | "snake";
+    to: "dash" | "camel" | "snake";
+}
 export interface ModelConfiguration {
     baseUrl: string;
     apiNamespace: string;
     jsonapiType: string;
     endpoint: string;
     jwt: string;
-    jwtLocalStorage: string | false;
-    camelizeKeys: boolean;
+    jwtStorage: string | false;
+    keyCase: KeyCase;
     strictAttributes: boolean;
     logger: ILogger;
 }
@@ -56,7 +60,7 @@ export declare class JSORMBase {
     static endpoint: string;
     static isBaseClass: boolean;
     static jwt?: string;
-    static camelizeKeys: boolean;
+    static keyCase: KeyCase;
     static strictAttributes: boolean;
     static logger: ILogger;
     static attributeList: Record<string, Attribute>;
@@ -65,13 +69,13 @@ export declare class JSORMBase {
     static currentClass: typeof JSORMBase;
     static beforeFetch: BeforeFilter | undefined;
     static afterFetch: AfterFilter | undefined;
-    static jwtLocalStorage: string | false;
+    static jwtStorage: string | false;
     private static _typeRegistry;
     private static _middlewareStack;
-    private static _localStorageBackend?;
-    private static _localStorage?;
-    static readonly localStorage: LocalStorage;
-    static localStorageBackend: StorageBackend | undefined;
+    private static _credentialStorageBackend?;
+    private static _credentialStorage?;
+    static readonly credentialStorage: CredentialStorage;
+    static credentialStorageBackend: StorageBackend | undefined;
     static readonly isJSORMModel: boolean;
     static fromJsonapi(resource: JsonapiResource, payload: JsonapiResponseDoc): any;
     static inherited(subclass: typeof JSORMBase): void;
@@ -98,6 +102,7 @@ export declare class JSORMBase {
     private _copyPrototypeDescriptors();
     isType(jsonapiType: string): boolean;
     isPersisted: boolean;
+    reset(): void;
     isMarkedForDestruction: boolean;
     isMarkedForDisassociation: boolean;
     attributes: Record<string, any>;
@@ -136,6 +141,8 @@ export declare class JSORMBase {
     static getJWT(): string | undefined;
     static generateAuthHeader(jwt: string): string;
     static getJWTOwner(): typeof JSORMBase | undefined;
+    static serializeKey(key: string): string;
+    static deserializeKey(key: string): string;
     destroy(): Promise<boolean>;
     save(options?: SaveOptions): Promise<boolean>;
     private _handleResponse(response, callback);

@@ -4,12 +4,12 @@ import { refreshJWT } from "./util/refresh-jwt";
 import relationshipIdentifiersFor from "./util/relationship-identifiers";
 import { Request } from "./request";
 import { WritePayload } from "./util/write-payload";
-import { LocalStorage, NullStorageBackend } from "./local-storage";
+import { CredentialStorage, NullStorageBackend } from "./credential-storage";
 import { deserialize, deserializeInstance } from "./util/deserialize";
 import DirtyChecker from "./util/dirty-check";
 import { Scope } from "./scope";
 import { JsonapiTypeRegistry } from "./jsonapi-type-registry";
-import { camelize } from "inflected";
+import { camelize, underscore, dasherize } from "inflected";
 import { logger as defaultLogger } from "./logger";
 import { MiddlewareStack } from "./middleware-stack";
 import { cloneDeep } from "./util/clonedeep";
@@ -41,28 +41,28 @@ var JSORMBase = /** @class */ (function () {
         this._originalAttributes = cloneDeep(this._attributes);
         this._originalRelationships = this.relationshipResourceIdentifiers(Object.keys(this.relationships));
     }
-    Object.defineProperty(JSORMBase, "localStorage", {
+    Object.defineProperty(JSORMBase, "credentialStorage", {
         get: function () {
-            if (!this._localStorage) {
-                if (!this._localStorageBackend) {
-                    if (this.jwtLocalStorage && typeof localStorage !== "undefined") {
-                        this._localStorageBackend = localStorage;
+            if (!this._credentialStorage) {
+                if (!this._credentialStorageBackend) {
+                    if (this.jwtStorage && typeof localStorage !== "undefined") {
+                        this._credentialStorageBackend = localStorage;
                     }
                     else {
-                        this._localStorageBackend = new NullStorageBackend();
+                        this._credentialStorageBackend = new NullStorageBackend();
                     }
                 }
-                this._localStorage = new LocalStorage(this.jwtLocalStorage, this._localStorageBackend);
+                this._credentialStorage = new CredentialStorage(this.jwtStorage, this._credentialStorageBackend);
             }
-            return this._localStorage;
+            return this._credentialStorage;
         },
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(JSORMBase, "localStorageBackend", {
+    Object.defineProperty(JSORMBase, "credentialStorageBackend", {
         set: function (backend) {
-            this._localStorageBackend = backend;
-            this._localStorage = undefined;
+            this._credentialStorageBackend = backend;
+            this._credentialStorage = undefined;
         },
         enumerable: true,
         configurable: true
@@ -85,7 +85,7 @@ var JSORMBase = /** @class */ (function () {
         if (!this.middlewareStack) {
             this._middlewareStack = new MiddlewareStack();
         }
-        var jwt = this.localStorage.getJWT();
+        var jwt = this.credentialStorage.getJWT();
         this.setJWT(jwt);
     };
     JSORMBase.isSubclassOf = function (maybeSuper) {
@@ -222,12 +222,15 @@ var JSORMBase = /** @class */ (function () {
         },
         set: function (val) {
             this._persisted = val;
-            this._originalAttributes = cloneDeep(this._attributes);
-            this._originalRelationships = this.relationshipResourceIdentifiers(Object.keys(this.relationships));
+            this.reset();
         },
         enumerable: true,
         configurable: true
     });
+    JSORMBase.prototype.reset = function () {
+        this._originalAttributes = cloneDeep(this._attributes);
+        this._originalRelationships = this.relationshipResourceIdentifiers(Object.keys(this.relationships));
+    };
     Object.defineProperty(JSORMBase.prototype, "isMarkedForDestruction", {
         get: function () {
             return this._markedForDestruction;
@@ -287,9 +290,7 @@ var JSORMBase = /** @class */ (function () {
         for (var key in attrs) {
             if (attrs.hasOwnProperty(key)) {
                 var attributeName = key;
-                if (this.klass.camelizeKeys) {
-                    attributeName = camelize(key, false);
-                }
+                attributeName = this.klass.deserializeKey(key);
                 if (key === "id" || this.klass.attributeList[attributeName]) {
                     ;
                     this[attributeName] = attrs[key];
@@ -462,7 +463,7 @@ var JSORMBase = /** @class */ (function () {
             throw new Error("Cannot set JWT on " + this.name + ": No base class present.");
         }
         this.baseClass.jwt = token || undefined;
-        this.localStorage.setJWT(token);
+        this.credentialStorage.setJWT(token);
     };
     JSORMBase.getJWT = function () {
         var owner = this.baseClass;
@@ -476,6 +477,32 @@ var JSORMBase = /** @class */ (function () {
     JSORMBase.getJWTOwner = function () {
         this.logger.warn("JSORMBase#getJWTOwner() is deprecated. Use #baseClass property instead");
         return this.baseClass;
+    };
+    JSORMBase.serializeKey = function (key) {
+        switch (this.keyCase.from) {
+            case "dash": {
+                return dasherize(underscore(key));
+            }
+            case "snake": {
+                return underscore(key);
+            }
+            case "camel": {
+                return camelize(underscore(key), false);
+            }
+        }
+    };
+    JSORMBase.deserializeKey = function (key) {
+        switch (this.keyCase.to) {
+            case "dash": {
+                return dasherize(underscore(key));
+            }
+            case "snake": {
+                return underscore(key);
+            }
+            case "camel": {
+                return camelize(underscore(key), false);
+            }
+        }
     };
     JSORMBase.prototype.destroy = function () {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
@@ -519,7 +546,7 @@ var JSORMBase = /** @class */ (function () {
                         payload = new WritePayload(this, options.with);
                         if (this.isPersisted) {
                             url = this.klass.url(this.id);
-                            verb = "put";
+                            verb = "patch";
                         }
                         json = payload.asJSON();
                         _a.label = 1;
@@ -573,12 +600,12 @@ var JSORMBase = /** @class */ (function () {
     };
     JSORMBase.baseUrl = "http://please-set-a-base-url.com";
     JSORMBase.apiNamespace = "/";
-    JSORMBase.camelizeKeys = true;
+    JSORMBase.keyCase = { from: "snake", to: "camel" };
     JSORMBase.strictAttributes = false;
     JSORMBase.logger = defaultLogger;
     JSORMBase.attributeList = {};
     JSORMBase.currentClass = JSORMBase;
-    JSORMBase.jwtLocalStorage = "jwt";
+    JSORMBase.jwtStorage = "jwt";
     /*
      *
      * This is to allow for sane type checking in collaboration with the
