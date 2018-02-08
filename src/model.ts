@@ -749,7 +749,7 @@ export class JSORMBase {
 
     if (this.isPersisted) {
       url = this.klass.url(this.id)
-      verb = "put"
+      verb = "patch"
     }
 
     const json = payload.asJSON()
