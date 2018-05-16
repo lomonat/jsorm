@@ -144,6 +144,7 @@ export declare class JSORMBase {
     static serializeKey(key: string): string;
     static deserializeKey(key: string): string;
     destroy(): Promise<boolean>;
+    serializeSave(options?: SaveOptions): Object;
     save(options?: SaveOptions): Promise<boolean>;
     private _handleResponse(response, callback);
     private _fetchOptions();

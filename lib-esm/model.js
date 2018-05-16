@@ -532,6 +532,26 @@ var JSORMBase = /** @class */ (function () {
             });
         });
     };
+    JSORMBase.prototype.serializeSave = function (options) {
+        if (options === void 0) { options = {}; }
+        var url = this.klass.url();
+        var verb = "post";
+        var request = new Request(this._middleware(), this.klass.logger);
+        var payload = new WritePayload(this, options.with);
+        var response;
+        if (this.isPersisted) {
+            url = this.klass.url(this.id);
+            verb = "patch";
+        }
+        this.clearErrors();
+        var json = payload.asJSON();
+        return {
+            verb: verb,
+            url: url,
+            body: json,
+            options: this._fetchOptions()
+        };
+    };
     JSORMBase.prototype.save = function (options) {
         if (options === void 0) { options = {}; }
         return tslib_1.__awaiter(this, void 0, void 0, function () {

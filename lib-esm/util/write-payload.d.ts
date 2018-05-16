@@ -38,6 +38,7 @@ export declare class WritePayload<T extends JSORMBase> {
             changes: never;
             hasDirtyRelation: never;
             dup: never;
+            serializeSave: never;
             save: never;
             resetRelationTracking: never;
         } & {

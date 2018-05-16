@@ -740,6 +740,29 @@ export class JSORMBase {
     })
   }
 
+  serializeSave(options: SaveOptions = {}): Object {
+    let url = this.klass.url()
+    let verb: RequestVerbs = "post"
+    const request = new Request(this._middleware(), this.klass.logger)
+    const payload = new WritePayload(this, options.with)
+    let response: any
+
+    if (this.isPersisted) {
+      url = this.klass.url(this.id)
+      verb = "patch"
+    }
+
+    this.clearErrors()
+
+    const json = payload.asJSON()
+      return {
+        verb: verb,
+        url: url,
+        body: json,
+        options: this._fetchOptions()
+      }
+    }
+
   async save(options: SaveOptions = {}): Promise<boolean> {
     let url = this.klass.url()
     let verb: RequestVerbs = "post"

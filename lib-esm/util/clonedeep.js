@@ -1,1 +1,2 @@
-export { default as cloneDeep } from "lodash-es/cloneDeep"
+export { cloneDeep } from "lodash";
+//# sourceMappingURL=clonedeep.js.map
