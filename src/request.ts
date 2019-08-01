@@ -19,6 +19,7 @@ export class Request {
   }
 
   get(url: string, options: RequestInit): Promise<any> {
+    console.log("test")
     options.method = "GET"
     return this._fetchWithLogging(url, options)
   }
